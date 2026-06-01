@@ -91,7 +91,13 @@ https://your-vercel-url.vercel.app/api/alexa
 requests
 pdfminer.six
 ```
+## 📸 Screenshots
 
+![Launch](https://raw.githubusercontent.com/oblivion-core/Voca-demy-/main/vocademy/Screenshot%20(1008).png)
+
+![Quiz](https://raw.githubusercontent.com/oblivion-core/Voca-demy-/main/vocademy/Screenshot%20(1009).png)
+
+![Score](https://raw.githubusercontent.com/oblivion-core/Voca-demy-/main/vocademy/Screenshot%20(1010).png)
 ---
 
 Built by **Bouslah Abdelkrim** · [github.com/oblivion-core](https://github.com/oblivion-core)
