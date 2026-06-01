@@ -1,0 +1,18 @@
+{
+  "builds": [
+    {
+      "src": "api/*.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/quiz",
+      "dest": "api/quiz.py"
+    },
+    {
+      "src": "/api/alexa",
+      "dest": "api/alexa.py"
+    }
+  ]
+}
