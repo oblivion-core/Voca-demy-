@@ -71,17 +71,14 @@ def chunk_document(text, chunk_size=300):
 
 
 def clean_answer(raw):
-    """Extract only the first letter A/B/C/D from the answer slot."""
     cleaned = ''.join(filter(str.isalpha, raw)).upper()
     return cleaned[:1] if cleaned else ""
 
 
 def explain_word(word):
-    """Explain a word using AI with multiple model fallbacks."""
     OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY")
     prompt = f"Explain '{word}' in 1-2 simple fun sentences for a young child. Be clear and easy to understand."
 
-    # FIX: Multiple model fallbacks instead of single deprecated model
     models = [
         "mistralai/mistral-7b-instruct:free",
         "google/gemma-3-4b-it:free",
@@ -103,14 +100,12 @@ def explain_word(word):
                     "Content-Type": "application/json"
                 }
             )
-            # FIX: Increased timeout from 5s to 10s for free models
             res = urllib.request.urlopen(req, timeout=10)
             result = json.loads(res.read().decode())
             return result["choices"][0]["message"]["content"]
         except Exception:
             continue
 
-    # FIX: Fallback if all models fail
     return f"'{word}' is a really interesting word! Ask your teacher to explain it to you after the lesson!"
 
 
@@ -153,7 +148,6 @@ def safe_finish_quiz(kid_name, kid_id, session_id, questions, user_answers, scor
         f"See you next time! Bye bye!"
     )
 
-    # Generate report with AI, with multiple model fallbacks
     report = None
     missed = []
 
@@ -164,7 +158,6 @@ def safe_finish_quiz(kid_name, kid_id, session_id, questions, user_answers, scor
 
         prompt = f"{kid_name} scored {score}/{total}. Write 2 fun encouraging sentences for a child. Plain text only."
 
-        # FIX: Updated models — removed deprecated nvidia/nemotron, added reliable free models
         models = [
             "mistralai/mistral-7b-instruct:free",
             "google/gemma-3-4b-it:free",
@@ -186,7 +179,6 @@ def safe_finish_quiz(kid_name, kid_id, session_id, questions, user_answers, scor
                         "Content-Type": "application/json"
                     }
                 )
-                # FIX: Increased timeout from 6s to 10s for free models
                 res = urllib.request.urlopen(req, timeout=10)
                 result = json.loads(res.read().decode())
                 report = result["choices"][0]["message"]["content"]
@@ -201,14 +193,10 @@ def safe_finish_quiz(kid_name, kid_id, session_id, questions, user_answers, scor
         print(f"REPORT GENERATION ERROR: {str(e)}")
         report = f"{kid_name} scored {score} out of {total}. Amazing effort!"
         missed = []
-
-    # FIX: Log save errors instead of silently swallowing them
     try:
         save_results(session_id, kid_id, report, score, feedback, missed)
     except Exception as e:
         print(f"SAVE RESULTS ERROR: session={session_id} kid={kid_id} error={str(e)}")
-        # Still return closing speech so the kid hears the ending
-        # but update message to reflect save issue
         closing = closing.replace(
             "Your report has been saved.",
             "Keep up the great work!"
@@ -262,7 +250,7 @@ class handler(BaseHTTPRequestHandler):
             req_type = body["request"]["type"]
             attributes = body.get("session", {}).get("attributes", {})
 
-            # ── Launch ──────────────────────────────────────────────────────
+          
             if req_type == "LaunchRequest":
                 try:
                     kid_id, kid_name, session_id, file_id = get_active_session()
@@ -293,12 +281,12 @@ class handler(BaseHTTPRequestHandler):
                         end=True
                     )
 
-            # ── Intent Requests ─────────────────────────────────────────────
+            
             elif req_type == "IntentRequest":
                 intent = body["request"]["intent"]["name"]
                 slots = body["request"]["intent"].get("slots", {})
 
-                # Read Document
+                
                 if intent == "ReadDocumentIntent":
                     file_id = attributes.get("file_id")
                     kid_name = attributes.get("kid_name", "friend")
@@ -347,7 +335,7 @@ class handler(BaseHTTPRequestHandler):
                                 reprompt="Say start the quiz!"
                             )
 
-                # Start Quiz
+               
                 elif intent in ["StartQuizIntent", "GetDataIntent"]:
                     if not attributes.get("kid_id"):
                         res = build_response(
@@ -396,7 +384,7 @@ class handler(BaseHTTPRequestHandler):
                                 end=True
                             )
 
-                # Answer
+               
                 elif intent == "AnswerIntent":
                     questions = attributes.get("questions")
                     if not questions:
@@ -411,8 +399,7 @@ class handler(BaseHTTPRequestHandler):
                         raw = slots.get("answer", {}).get("value", "")
                         user_answer = clean_answer(raw)
 
-                        # FIX: If slot was empty/unrecognized, try extracting from
-                        # the raw transcript field Alexa sometimes provides
+                    
                         if not user_answer or user_answer not in ["A", "B", "C", "D"]:
                             try:
                                 transcript = body["request"].get("intent", {}).get(
@@ -472,7 +459,7 @@ class handler(BaseHTTPRequestHandler):
                                 reprompt="Say A, B, C or D!"
                             )
 
-                # Explain / Define Intent
+                
                 elif intent == "ExplainIntent":
                     word = slots.get("word", {}).get("value", "")
                     mode = attributes.get("mode", "menu")
@@ -519,7 +506,7 @@ class handler(BaseHTTPRequestHandler):
                                 reprompt="Say continue!"
                             )
 
-                # Repeat Intent
+                
                 elif intent == "RepeatIntent":
                     mode = attributes.get("mode", "menu")
 
@@ -569,7 +556,7 @@ class handler(BaseHTTPRequestHandler):
                             reprompt="Say start the quiz!"
                         )
 
-                # Score Intent
+               
                 elif intent == "ScoreIntent":
                     score = attributes.get("score", 0)
                     index = attributes.get("index", 0)
@@ -681,7 +668,7 @@ class handler(BaseHTTPRequestHandler):
                             reprompt="Say read the document or start the quiz!"
                         )
 
-                # Stop Intent
+                
                 elif intent == "AMAZON.StopIntent":
                     kid_name = attributes.get("kid_name", "friend")
                     res = build_response(
@@ -690,7 +677,7 @@ class handler(BaseHTTPRequestHandler):
                         end=True
                     )
 
-                # Cancel Intent
+                
                 elif intent == "AMAZON.CancelIntent":
                     kid_name = attributes.get("kid_name", "friend")
                     res = build_response(
@@ -699,13 +686,13 @@ class handler(BaseHTTPRequestHandler):
                         end=True
                     )
 
-                # Continue / Resume / Proceed Intent
+                
                 elif intent in ["AMAZON.ResumeIntent", "ProceedIntent", "ContinueIntent"]:
                     mode = attributes.get("mode", "menu")
                     kid_name = attributes.get("kid_name", "friend")
                     pre_explain_mode = attributes.get("pre_explain_mode")
 
-                    # Returning from an explanation in quiz
+                    
                     if pre_explain_mode == "quiz":
                         attributes["pre_explain_mode"] = None
                         questions = attributes.get("questions")
@@ -726,7 +713,7 @@ class handler(BaseHTTPRequestHandler):
                                 reprompt="Say start the quiz!"
                             )
 
-                    # Returning from an explanation in reading
+                   
                     elif pre_explain_mode == "reading":
                         attributes["pre_explain_mode"] = None
                         chunks = attributes.get("chunks", [])
@@ -748,7 +735,7 @@ class handler(BaseHTTPRequestHandler):
                                 reprompt="Say start the quiz!"
                             )
 
-                    # Continuing reading (next chunk)
+                   
                     elif mode == "reading":
                         chunks = attributes.get("chunks", [])
                         chunk_index = attributes.get("chunk_index", 0)
@@ -777,7 +764,7 @@ class handler(BaseHTTPRequestHandler):
                                 reprompt="Say a word you need help with, or say continue!"
                             )
 
-                    # Continuing quiz after pause
+                    
                     elif mode == "quiz":
                         attributes["paused"] = False
                         questions = attributes.get("questions")
@@ -806,7 +793,7 @@ class handler(BaseHTTPRequestHandler):
                             reprompt="Say read the document or start the quiz!"
                         )
 
-                # Quit Intent
+                
                 elif intent == "QuitIntent":
                     kid_name = attributes.get("kid_name", "friend")
                     res = build_response(
@@ -816,11 +803,11 @@ class handler(BaseHTTPRequestHandler):
                     )
 
                 else:
-                    # FIX: Improved fallback — try multiple ways to extract A/B/C/D
+                   
                     kid_name = attributes.get("kid_name", "friend")
                     letter_guess = None
 
-                    # 1. Check all slot values
+                    
                     for slot_data in slots.values():
                         val = slot_data.get("value", "")
                         cleaned = clean_answer(val)
@@ -828,7 +815,7 @@ class handler(BaseHTTPRequestHandler):
                             letter_guess = cleaned
                             break
 
-                    # 2. Check intent name itself (e.g. Alexa mapped "A" as intent name)
+                    
                     if not letter_guess:
                         try:
                             raw_value = body["request"]["intent"].get("name", "").upper().strip()
@@ -837,7 +824,7 @@ class handler(BaseHTTPRequestHandler):
                         except Exception:
                             pass
 
-                    # 3. FIX: Check the raw user input transcript if available
+                    
                     if not letter_guess:
                         try:
                             transcript = body["request"].get("intent", {}).get(
